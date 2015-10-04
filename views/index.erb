@@ -1,0 +1,51 @@
+<% @groups.each do |group| %>
+<div class="groups col-sm-3">
+  <table>
+    <tr>
+      <th>Position</th>
+      <th>Name</th>
+      <th>Wins</th>
+      <th>Loses</th>
+      <th>Points</th>
+    </tr>
+    <% group[:participants].each_with_index do |p, i| %>
+    <tr>
+      <td><%= i + 1 %></td>
+      <td><%= @tournament[:participants][p[:id]] %></td>
+      <td><%= p[:wins] %></td>
+      <td><%= p[:loses] %></td>
+      <td><%= p[:wins] * 2 %></td>
+    </tr>
+    <% end %>
+  </table>
+
+  <table>
+    <tr>
+      <th>Stage</th>
+      <th>Who</th>
+      <th>Score</th>
+    </tr>
+  <% group[:games].each do |game| %>
+    <tr class="<%= game[:played] == "Y" ? "played" : "toplay" %>">
+      <td><%= game[:stage].to_i %></td>
+      <td> 
+      <% if game[:scoreA] > game[:scoreB] %>
+        <strong> <%= @tournament[:participants][game[:partA]] %> </strong>
+      <% else %>
+         <%= @tournament[:participants][game[:partA]] %> 
+      <% end %>
+          vs.
+      <% if game[:scoreB] > game[:scoreA] %>
+        <strong> <%= @tournament[:participants][game[:partB]] %> </strong>
+      <% else %>
+         <%= @tournament[:participants][game[:partB]] %> 
+      <% end %>
+      </td>
+      <td>
+       <%= game[:scoreA].to_i %> - <%= game[:scoreB].to_i %>
+      </td>
+    </tr>
+  <% end %>
+  </table>
+</div>
+<% end %>

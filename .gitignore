@@ -1,0 +1,4 @@
+*.swp
+.env
+.metadata
+foreman.sh
