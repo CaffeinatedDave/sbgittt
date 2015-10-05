@@ -13,6 +13,7 @@ Dotenv.load
 include Mongo
 
 use Rack::Logger
+set :show_exceptions, :after_handler
 
 helpers do
   def logger
@@ -31,6 +32,11 @@ def getNextSequence(name)
   ret.seq;
 end
 
+not_found do
+  status 404
+  '{error: "not found"}'
+end
+
 before do
   if ENV['debug'] == true
     logger.info request.env.to_s
@@ -38,7 +44,6 @@ before do
 end
 
 def orderGroups(tournament)
-
   groups = []
 
   tournament[:groups].each do |g| 
@@ -90,6 +95,14 @@ get '/' do
 
   @groups = orderGroups(@tournament)
 
+  games = @tournament[:games].select { |g| g[:stage] != 1 }
+  @stages = []
+  @stages.push(games.select { |g| g[:stage] == 2 })
+  @stages.push(games.select { |g| g[:stage] == 3 })
+  @stages.push(games.select { |g| g[:stage] == 4 })
+
+  logger.warn(@stages.to_s)
+
   erb :index
 end
 
@@ -124,7 +137,7 @@ post '/score/?' do
     found = false
     tournament[:games].map! do |g|
       game = g
-      if (g[:round] == lastGame[:round] && g[:partA] == partA && g[:partB] == partB)
+      if (g[:stage] == lastGame[:stage] && g[:partA] == partA && g[:partB] == partB)
         game[:scoreA] = scoreA.to_i
         game[:scoreB] = scoreB.to_i
         game[:played] = "Y"
@@ -146,31 +159,58 @@ end
 
 post '/progress/?' do
   tournament = $db[:tournament].find().first()
+  lastGame = tournament[:games].last
+  stage = lastGame[:stage] + 1
 
   if (tournament[:games].all? { |g| g[:played] == "Y" })
-    lastGame = tournament[:games].last
-    round = lastGame[:round] + 1
-    if (game[:type] == "G") 
+    if (lastGame[:type] == "G") 
       orderGroups(tournament).each_slice(2) do |a,b|
-        #TODO - actually add more games
+        partA1 = a[:participants][0][:id].to_i
+        partA2 = a[:participants][1][:id].to_i
+        partB1 = b[:participants][0][:id].to_i
+        partB2 = b[:participants][1][:id].to_i
+        tournament[:games].push({
+          :partA => partA1 < partB2 ? partA1 : partB2, :partB => partA1 > partB2 ? partA1 : partB2,
+          :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
+        tournament[:games].push({
+          :partA => partB1 < partA2 ? partB1 : partA2, :partB => partB1 > partA2 ? partB1 : partA2,
+          :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
       end
     else
-      #TODO - pair off winners
+      games = tournament[:games].select { |g| g[:stage] == lastGame[:stage] }
+      if (games.size == 1) 
+        tournament[:winner] == games[0][:scoreA] > games[0][:scoreB] ? games[0][:partA] : games[0][:partB]
+      else 
+        while (!games.empty?)
+          gameA = games.shift
+          gameB = games.pop
+
+          partA = gameA[:scoreA] > gameA[:scoreB] ? gameA[:partA] : gameA[:partB]
+          partB = gameB[:scoreA] > gameB[:scoreB] ? gameB[:partA] : gameB[:partB]
+
+          if (partA > partB) 
+            temp = partA
+            partA = partB
+            partB = temp
+          end
+
+          tournament[:games].push({
+            :partA => partA, :partB => partB,
+            :scoreA => 0, :scoreB => 0,
+            :stage => stage, :type => "K", :played => "N"
+          })
+        end
+      end
     end
+
+    $db[:tournament].find(:ezid => tournament[:ezid])
+                    .find_one_and_update({"$set" => tournament})
+    "Done"
   else
-    not_yet
+    status 412
+    "Not yet"
   end
 end 
-
-not_found do
-  status 404
-  '{error: "not found"}'
-end
-
-not_yet do
-  status 412
-  '{error: "not yet.."}'
-end
 
 after do
   # Close the connection after the request is done so that we don't
