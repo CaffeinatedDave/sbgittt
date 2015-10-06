@@ -89,6 +89,21 @@ def orderGroups(tournament)
   return groups
 end
 
+def arrangeKnockoutGames(gameList)
+  take = 1
+  while (take < gameList.size)
+    newlist = []
+    while (!gameList.empty?)
+      newlist.push(gameList.shift(take))
+      newlist.push(gameList.pop(take))
+    end
+    gameList = newlist.flatten
+    take = take * 2
+  end
+
+  return gameList
+end
+
 get '/' do
   # Do something cleverer when we have multiple tournaments
   @tournament = $db[:tournament].find().first()
@@ -97,9 +112,9 @@ get '/' do
 
   games = @tournament[:games].select { |g| g[:stage] != 1 }
   @stages = []
-  @stages.push(games.select { |g| g[:stage] == 2 })
-  @stages.push(games.select { |g| g[:stage] == 3 })
-  @stages.push(games.select { |g| g[:stage] == 4 })
+  @stages.push(arrangeKnockoutGames(games.select { |g| g[:stage] == 2 }))
+  @stages.push(arrangeKnockoutGames(games.select { |g| g[:stage] == 3 }))
+  @stages.push(arrangeKnockoutGames(games.select { |g| g[:stage] == 4 }))
 
   logger.warn(@stages.to_s)
 

@@ -1,7 +1,7 @@
 <% if (!@stages[0].empty?) %>
 <div class="knockouts">
-  <% @stages.each do |games| %>
-  <div class="col-sm-4 knockout">
+  <% @stages.each_with_index do |games, i| %>
+  <div class="col-sm-<%= 12 / @stages.size %> knockout" id="stage-<%= i %>">
     <% games.each do |game| %>
       <div class="game <%= game[:played] == "Y" ? "played" : "toplay" %>">
         <%= @tournament[:participants][game[:partA]] %> - <%= game[:scoreA] %><br/>
