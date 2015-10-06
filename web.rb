@@ -110,6 +110,8 @@ get '/' do
 
   @groups = orderGroups(@tournament)
 
+  @tournamentName = @tournament[:name]
+
   games = @tournament[:games].select { |g| g[:stage] != 1 }
   @stages = []
   @stages.push(arrangeKnockoutGames(games.select { |g| g[:stage] == 2 }))
