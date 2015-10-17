@@ -23,6 +23,10 @@ end
 
 $db = Mongo::Client.new(ENV['MONGOLAB_URI'])
 
+def isAllowedUpdate(pass)
+  return pass == ENV['passphrase']
+end
+
 def getNextSequence(name) 
   ret = $db[:counters].find({"_id" => name}).find_one_and_update(
     { :$inc => { :seq => 1 }},
@@ -43,6 +47,12 @@ before do
   end
 end
 
+# Orders groups based on games played so far.
+#
+# For each group, take games played and award wins/loses to each player.
+# Order by - total wins, number of sets won, then number of sets lost (to reward 
+# playing over inactivity)
+#
 def orderGroups(tournament)
   groups = []
 
@@ -89,6 +99,33 @@ def orderGroups(tournament)
   return groups
 end
 
+# This arranges a list of games 1 .. N (where N matches 2^(int)) so that future games are paired 
+# in seeding order. As such, if we assume that the favourite seed always wins, each round will only
+# contain seeds [1 .. num remaining players]. This can also be used for keeping winners/runners up 
+# from any group separate until the final, just by giving them consecutive "seeds" eg 5 and 6 
+#
+# This should be passed a list of games ordered favourite -> least favourite, according to the "best"
+# seeded player - either based on who won the previous rounds (eg if 16 beats 1, 16 may be favourite
+# now) or from initial seeding. This is left as a decision for the calling code.
+#
+# Example: 16 players with matches sorted as follows:
+#
+# 1 vs 16
+#       -- 1 vs 8
+# 8 vs 9        |
+#               -- 1 vs 4
+# 4 vs 13       |      |
+#       -- 4 vs 5      |
+# 5 vs 12              |
+#                      -- 1 vs 2
+# 2 vs 15              |
+#       -- 2 vs 7      |
+# 7 vs 10       |      |
+#               -- 2 vs 3
+# 3 vs 14       |
+#       -- 3 vs 6
+# 6 vs 11
+#
 def arrangeKnockoutGames(gameList)
   take = 1
   while (take < gameList.size)
@@ -98,15 +135,23 @@ def arrangeKnockoutGames(gameList)
       newlist.push(gameList.pop(take))
     end
     gameList = newlist.flatten
-    take = take * 2
+    take *= 2
   end
 
   return gameList
 end
 
-get '/' do
+get '/:id?' do
   # Do something cleverer when we have multiple tournaments
-  @tournament = $db[:tournament].find().first()
+  search = {}
+  if params[:id] != nil
+    search["ezid"] = params[:id].to_i
+  end
+  @tournament = $db[:tournament].find(search).first()
+
+  if @tournament == nil
+    not_found
+  end
 
   @groups = orderGroups(@tournament)
 
@@ -174,8 +219,16 @@ post '/score/?' do
   "Done"
 end
 
+post '/start/?' do
+  json = JSON.parse(request.body.read)
+end
+  
 post '/progress/?' do
-  tournament = $db[:tournament].find().first()
+  json = JSON.parse(request.body.read)
+
+  ezid = json['id']
+
+  tournament = $db[:tournament].find({:ezid => ezid}).first()
   lastGame = tournament[:games].last
   stage = lastGame[:stage] + 1
 
@@ -229,9 +282,3 @@ post '/progress/?' do
   end
 end 
 
-after do
-  # Close the connection after the request is done so that we don't
-  # deplete the ActiveRecord connection pool.
-
-  # Don't think this is needed for mongo...
-end
