@@ -1,0 +1,9 @@
+<ul>
+<% @list.each do |l| %>
+  <li>
+    <a href="/<%= l[:ezid].to_i %>">
+    <%= l[:name]  %>
+    </a>
+  </li>
+<% end %>
+</ul>

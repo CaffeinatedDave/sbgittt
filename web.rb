@@ -141,6 +141,12 @@ def arrangeKnockoutGames(gameList)
   return gameList
 end
 
+get "/list/?" do
+  @list = $db[:tournament].find()
+
+  erb :list
+end
+
 get '/:id?' do
   # Do something cleverer when we have multiple tournaments
   search = {}
@@ -184,6 +190,7 @@ post '/score/?' do
   else
     scoreA = json['scoreA']
     scoreB = json['scoreB']
+    override = json['override'] == nil ? 'N' : json['override']
     # Lowest part number should be first, so switch this if necessary 
     if (partA > partB)
       temp = partA
@@ -200,11 +207,15 @@ post '/score/?' do
     tournament[:games].map! do |g|
       game = g
       if (g[:stage] == lastGame[:stage] && g[:partA] == partA && g[:partB] == partB)
-        game[:scoreA] = scoreA.to_i
-        game[:scoreB] = scoreB.to_i
-        game[:played] = "Y"
-        logger.info("Found a score!")
-        found = true
+        if game[:played] == "N" || override == "Y" 
+          game[:scoreA] = scoreA.to_i
+          game[:scoreB] = scoreB.to_i
+          game[:played] = "Y"
+          logger.info("Found a score!")
+          found = true
+        else
+          logger.warn("Found, not not overriding")
+        end
       end
       game
     end
