@@ -142,7 +142,7 @@ def arrangeKnockoutGames(gameList)
 end
 
 get "/list/?" do
-  @list = $db[:tournament].find()
+  @list = $db[:tournament].find({}, :sort => ["ezid", -1])
 
   erb :list
 end
@@ -153,7 +153,7 @@ get '/:id?' do
   if params[:id] != nil
     search["ezid"] = params[:id].to_i
   end
-  @tournament = $db[:tournament].find(search).first()
+  @tournament = $db[:tournament].find(search, :sort => ["ezid", -1]).first()
 
   if @tournament == nil
     not_found
