@@ -177,7 +177,9 @@ end
 post '/score/?' do
   json = JSON.parse(request.body.read)
   
-  tournament = $db[:tournament].find().first()
+  ezid = json['id']
+
+  tournament = $db[:tournament].find(:ezid => ezid).first()
 
   partA = tournament[:participants].find_index(json['partA'])
   partB = tournament[:participants].find_index(json['partB'])
