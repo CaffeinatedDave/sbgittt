@@ -245,9 +245,10 @@ post '/progress/?' do
   lastGame = tournament[:games].last
   stage = lastGame[:stage] + 1
 
+  groups = orderGroups(tournament)
   if (tournament[:games].all? { |g| g[:played] == "Y" })
-    if (lastGame[:type] == "G") 
-      orderGroups(tournament).each_slice(2) do |a,b|
+    if (lastGame[:type] == "G" && tournament[:groups].size >= 4) 
+      groups.each_slice(2) do |a,b|
         partA1 = a[:participants][0][:id].to_i
         partA2 = a[:participants][1][:id].to_i
         partB1 = b[:participants][0][:id].to_i
@@ -259,6 +260,51 @@ post '/progress/?' do
           :partA => partB1 < partA2 ? partB1 : partA2, :partB => partB1 > partA2 ? partB1 : partA2,
           :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
       end
+    elsif (lastGame[:type] == "G" && tournament[:groups].size == 2) 
+      groups.each_slice(2) do |a,b|
+        partA1 = a[:participants][0][:id].to_i
+        partA2 = a[:participants][1][:id].to_i
+        partA3 = a[:participants][2][:id].to_i
+        partA4 = a[:participants][3][:id].to_i
+        partB1 = b[:participants][0][:id].to_i
+        partB2 = b[:participants][1][:id].to_i
+        partB3 = b[:participants][2][:id].to_i
+        partB4 = b[:participants][3][:id].to_i
+        tournament[:games].push({
+          :partA => partA1 < partB4 ? partA1 : partB4, :partB => partA1 > partB4 ? partA1 : partB4,
+          :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
+        tournament[:games].push({
+          :partA => partA2 < partB3 ? partA2 : partB3, :partB => partA2 > partB3 ? partA2 : partB3,
+          :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
+        tournament[:games].push({
+          :partA => partA3 < partB2 ? partA3 : partB2, :partB => partA3 > partB2 ? partA3 : partB2,
+          :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
+        tournament[:games].push({
+          :partA => partA4 < partB1 ? partA4 : partB1, :partB => partA4 > partB1 ? partA4 : partB1,
+          :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
+      end
+    elsif (lastGame[:type] == "G" && tournament[:groups].size == 1) 
+      group = groups.take(1)
+      partA1 = group[:participants][0][:id].to_i
+      partA2 = group[:participants][1][:id].to_i
+      partA3 = group[:participants][2][:id].to_i
+      partA4 = group[:participants][3][:id].to_i
+      partB1 = group[:participants][4][:id].to_i
+      partB2 = group[:participants][5][:id].to_i
+      partB3 = group[:participants][6][:id].to_i
+      partB4 = group[:participants][7][:id].to_i
+      tournament[:games].push({
+        :partA => partA1 < partB4 ? partA1 : partB4, :partB => partA1 > partB4 ? partA1 : partB4,
+        :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
+      tournament[:games].push({
+        :partA => partA2 < partB3 ? partA2 : partB3, :partB => partA2 > partB3 ? partA2 : partB3,
+        :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
+      tournament[:games].push({
+        :partA => partA3 < partB2 ? partA3 : partB2, :partB => partA3 > partB2 ? partA3 : partB2,
+        :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
+      tournament[:games].push({
+        :partA => partA4 < partB1 ? partA4 : partB1, :partB => partA4 > partB1 ? partA4 : partB1,
+        :scoreA => 0, :scoreB => 0, :stage => stage, :type => "K", :played => "N"})
     else
       games = tournament[:games].select { |g| g[:stage] == lastGame[:stage] }
       if (games.size == 1) 
