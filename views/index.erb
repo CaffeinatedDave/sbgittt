@@ -46,7 +46,7 @@
       <th>Who</th>
       <th>Score</th>
     </tr>
-  <% group[:games].each do |game| %>
+  <% group[:games].shuffle.each do |game| %>
     <tr class="<%= game[:played] == "Y" ? "played" : "toplay" %>">
       <td><%= game[:stage].to_i %></td>
       <td> 
